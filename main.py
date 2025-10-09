@@ -4,8 +4,7 @@ from google import genai
 from google.genai import types
 from dotenv import load_dotenv
 from prompts import *
-from call_function import available_functions
-from functions.call_function import call_function
+from call_function import available_functions, call_function
 
 def main():
 
@@ -56,9 +55,8 @@ def main():
             function_call_result = call_function(function_call_part, verbose)
             try:
                 print(f"-> {function_call_result.parts[0].function_response.response}")
-            except:
-                Exception("The function doesn't have a response...")
-                os.sys.exit(1)
+            except Exception:
+                raise Exception("The function doesn't have a response...")
 
     else:
         print(response.text)
