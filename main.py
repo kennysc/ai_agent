@@ -32,34 +32,51 @@ def main():
 
     # Prompt the gemini model
     prompt = " ".join(args)
-    messages = [
-        types.Content(role="user", parts=[types.Part(text=prompt)]),
-    ]
+    messages = []
+    messages.append(types.Content(role="user", parts=[types.Part(text=prompt)]))
+    iteration = 0
 
-    response = client.models.generate_content(
-        model="gemini-2.0-flash-001",
-        contents=messages,
-        config=types.GenerateContentConfig(
-            tools=[available_functions],
-            system_instruction=system_prompt),
-    )
-    response_functions = response.function_calls
+    while iteration <= 20:
+        response = client.models.generate_content(
+            model="gemini-2.0-flash-001",
+            contents=messages,
+            config=types.GenerateContentConfig(
+                tools=[available_functions],
+                system_instruction=system_prompt),
+        )
 
-    # Get answer back and print the tokens used
-    if verbose:
-        print(f"User prompt: {messages[0]}")
-        print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
-        print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
-    if response_functions:
-        for function_call_part in response_functions:
-            function_call_result = call_function(function_call_part, verbose)
-            try:
-                print(f"-> {function_call_result.parts[0].function_response.response}")
-            except Exception:
-                raise Exception("The function doesn't have a response...")
-
-    else:
-        print(response.text)
+        for candidate in response.candidates:
+            messages.append(candidate.content)
+    
+        response_functions = response.function_calls
+    
+        # Get answer back and print the tokens used
+        if verbose:
+            print(f"User prompt: {messages[0]}")
+            print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
+            print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
+        if response_functions:
+            for function_call_part in response_functions:
+                function_call_result = call_function(function_call_part, verbose)
+                messages.append(types.Content(
+                    role="user",
+                    parts=[
+                        types.Part.from_function_response(
+                            name=function_call_result.parts[0].function_response.name,
+                            response={"result": f"{function_call_result.parts[0].function_response.response}"}
+                        )
+                    ]
+                )
+                                )
+#                try:
+#                    print(f"-> {function_call_result.parts[0].function_response.response}")
+#                except Exception:
+#                    raise Exception("The function doesn't have a response...")
+        
+        if not response_functions and response.text:
+            print(response.text)
+            break
+        iteration += 1
 
 if __name__ == "__main__":
     main()
