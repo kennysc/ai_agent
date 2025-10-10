@@ -1,2 +1,4 @@
 MAX_CHARS = 10_000
 WORKING_DIRECTORY = "./calculator"
+MAX_ITER = 20
+GEMINI_MODEL = "gemini-2.0-flash-001"
